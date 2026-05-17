@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Workspace {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  members WorkspaceMember[]
+  courses Course[]
+
+  @@map("workspaces")
+}
+
+// Intermediate table to handle Many-to-Many between User and Workspace
+// This allows a User to be part of multiple Workspaces with different roles.
+model WorkspaceMember {
+  id   Int           @id @default(autoincrement())
+  role WorkspaceRole @default(MEMBER)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workspaceId Int
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId]) // Prevents a user from being added to the same workspace twice
+  @@map("workspace_members")
+}
+
+model User {
+  id           Int    @id @default(autoincrement())
+  email        String @unique
+  username     String @unique
+  passwordHash String
+
+  firstName String @default("")
+  lastName  String @default("")
+
+  globalRole GlobalRole @default(USER)
+
+  workspaces WorkspaceMember[]
+  courses    Course[]
+
+  @@map("users")
+}
+
+model Course {
+  id                 Int     @id @default(autoincrement())
+  title              String
+  customInstructions String?
+
+  strategy          Strategy          @default(VECTOR_SEARCH)
+  performanceMetric PerformanceMetric @default(FAST)
+  difficultyLevel   DifficultyLevel   @default(MEDIUM)
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
+
+  workspaceId      Int
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  knowledgeSources KnowledgeSource[]
+
+  @@map("courses")
+}
+
+model KnowledgeSource {
+  id                String           @id @default(uuid())
+  title             String
+  filePath          String
+  vectorIndexStatus GenerationStatus @default(PENDING)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  courseId   Int
+  course     Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  // Relations
+  chunks     KnowledgeChunk[]
+  blueprints CourseBlueprint[]
+}
+
+model KnowledgeChunk {
+  id           String   @id @default(uuid())
+  sourceId     String
+  pageNumber   Int
+  category     String // e.g., "Table", "Title", "NarrativeText"
+  contentText  String // Cleaned, context-enriched string
+  // Note: Prisma doesn't natively map vector types out of the box yet.
+  // We use standard SQL injections for embedding lookups, but track metadata here.
+  hasEmbedding Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  // Relations
+  source KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([sourceId])
+}
+
+model CourseBlueprint {
+  id                 String           @id @default(uuid())
+  sourceId           String
+  title              String
+  personaDescription String
+  status             GenerationStatus @default(PENDING)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  // Relations
+  source  KnowledgeSource @relation(fields: [sourceId], references: [id])
+  modules Module[]
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  blueprintId String
+  orderIndex  Int
+  title       String
+  summary     String
+  keyConcepts Json // Stored as an array string jsonb: ["ConceptA", "ConceptB"]
+  createdAt   DateTime @default(now())
+
+  // Relations
+  blueprint   CourseBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  assessments Assessment[]
+
+  @@unique([blueprintId, orderIndex]) // Guarantees chronological sequencing order
+}
+
+model Lesson {
+  id              String           @id @default(uuid())
+  moduleId        String
+  contentMarkdown String // The textbook chapter compiled by the Persona Agent
+  status          GenerationStatus @default(PENDING)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relations
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+}
+
+model Assessment {
+  id           String         @id @default(uuid())
+  moduleId     String
+  type         AssessmentType
+  questionText String
+  // This is the core magic column. It stores the unique payload parameters 
+  // for code_snippets, drag_drop, simulation trees, or rubrics.
+  properties   Json
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Relations
+  module      Module              @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  submissions StudentSubmission[]
+
+  @@index([moduleId])
+}
+
+model StudentSubmission {
+  id            String   @id @default(uuid())
+  assessmentId  String
+  studentId     String // Foreign key tracking back to your Auth User Profile table
+  answerPayload Json // Captures exactly what choice, sequence, or text they sent
+  score         Float // Computed grading metric (0.00 to 100.00)
+  feedback      String // Remediation feedback calculated server-side
+  createdAt     DateTime @default(now())
+
+  // Relations
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+}
+
+// --- NEW ENUMS ---
+
+/// Roles assigned specifically within individual workspaces
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+/// Global system roles (unrelated to individual workspaces)
+enum GlobalRole {
+  SUPERADMIN
+  USER
+}
+
+enum VectorIndexStatus {
+  PENDING
+  INDEXING
+  INDEXED
+  FAILED
+}
+
+enum Strategy {
+  VECTOR_SEARCH
+  KEYWORD_SEARCH
+  HYBRID_SEARCH
+}
+
+enum PerformanceMetric {
+  FAST
+  BALANCED
+  HIGH_ACCURACY
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum GenerationStatus {
+  PENDING
+  PROCESSING
+  MAPPED
+  GENERATED
+  INDEXED
+  FAILED
+}
+
+enum AssessmentType {
+  CODE_SNIPPET
+  DRAG_DROP
+  CHAT_SIM
+  TEXTAREA
+}

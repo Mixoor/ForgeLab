@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", // Specify ECMAScript target version
+    "module": "NodeNext", // Standard for modern Node.js
+    "moduleResolution": "NodeNext", // Matches Node.js resolution behavior
+    "outDir": "./dist", // Destination for compiled JS
+    "rootDir": "./src", // Location of source TS files
+    "strict": true, // Enable all strict type-checking
+    "esModuleInterop": true, // Ensures compatibility with CJS
+    "skipLibCheck": true, // Speeds up build by skipping type check for libs
+    "forceConsistentCasingInFileNames": true // Prevents issues on case-sensitive OS
+  },
+  "include": ["src/**/*"], // Files to include in the project
+  "exclude": ["node_modules"] // Folders to ignore
+}
