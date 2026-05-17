@@ -38,7 +38,7 @@ export const documentWorker = new Worker(
         for (const element of elements) {
           if (!element.text || element.text.trim().length < 5) continue;
 
-          await db.knowledgeChunk.create({
+          var knowledgeChunk = await db.knowledgeChunk.create({
             data: {
               sourceId: source.id,
               pageNumber: element.pageNumber,
@@ -47,6 +47,8 @@ export const documentWorker = new Worker(
               hasEmbedding: false,
             },
           });
+          // Track the newly created chunk IDs for subsequent embedding generation step
+          createdChunkIds.push(knowledgeChunk.id);
         }
 
         console.log(
@@ -68,7 +70,7 @@ export const documentWorker = new Worker(
           const vectorString = `[${embeddingVector.join(",")}]`;
 
           await db.$executeRawUnsafe(
-            `UPDATE knowledge_chunks SET embedding = $1::vector, "hasEmbedding" = true WHERE id = $2`,
+            `UPDATE "KnowledgeChunk" SET embedding = $1::vector, "hasEmbedding" = true WHERE id = $2`,
             vectorString,
             chunkId,
           );

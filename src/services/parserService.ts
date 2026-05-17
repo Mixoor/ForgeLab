@@ -21,7 +21,8 @@ export class ParserService {
 
       const scriptPath = path.join(
         __dirname,
-        "../external/scripts/document-parser.py",
+       //"../external/scripts/document-parser.py", 
+        "../external/scripts/recursive-document-parser.py",
       );
 
       // Spawn python execution pipeline thread

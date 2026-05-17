@@ -1,10 +1,12 @@
 generator client {
   provider = "prisma-client"
   output   = "../generated"
+  previewFeatures = ["postgresqlExtensions"] // Required for the extensions block
 }
 
 datasource db {
   provider = "postgresql"
+  extensions = [vector]
 }
 
 model Workspace {
@@ -95,8 +97,7 @@ model KnowledgeChunk {
   pageNumber   Int
   category     String // e.g., "Table", "Title", "NarrativeText"
   contentText  String // Cleaned, context-enriched string
-  // Note: Prisma doesn't natively map vector types out of the box yet.
-  // We use standard SQL injections for embedding lookups, but track metadata here.
+  embedding Unsupported("vector(1536)")?  // Assuming 1536-dim embeddings from OpenAI
   hasEmbedding Boolean  @default(false)
   createdAt    DateTime @default(now())
 

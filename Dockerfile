@@ -12,7 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN pip install unstructured unstructured[all] --no-cache-dir
+# RUN pip install unstructured unstructured[all] pypdf --no-cache-dir
+
+RUN pip install  pypdf --no-cache-dir
 
 COPY package*.json ./
 
