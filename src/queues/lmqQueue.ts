@@ -10,11 +10,9 @@ interface LMQJobData {
 }
 
 export async function queueCourseIngestion(courseId: number) {
-  await documentLmqQueue.add(
-    "lmq-course-docs",
-    { courseId } as LMQJobData,
-    { jobId: `course-${courseId}` }, 
-  );
+  await documentLmqQueue.add(DOCUMENT_QUEUE_NAME, { courseId } as LMQJobData, {
+    jobId: `course-${courseId}`,
+  });
   console.log(
     `[BullMQ] Course [${courseId}] LMQ job dispatched to queue.`,
   );

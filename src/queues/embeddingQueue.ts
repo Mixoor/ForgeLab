@@ -12,9 +12,9 @@ interface EmbeddingJobData {
 
 export async function queueCourseEmbedding(courseId: number) {
   await documentEmbeddingQueue.add(
-    "embedding-course-chunks",
+    DOCUMENT_QUEUE_NAME,
     { courseId } as EmbeddingJobData,
-    { jobId: `course-${courseId}` }, 
+    { jobId: `course-${courseId}` },
   );
   console.log(
     `[BullMQ] Course [${courseId}] embedding job dispatched to queue.`,

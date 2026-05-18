@@ -4,89 +4,51 @@ import { DOCUMENT_QUEUE_NAME } from "../queues/lmqQueue";
 
 import { db } from "../database";
 
-import { ParserService } from "../services/parserService";
-import { EmbeddingService } from "../services/embbedingService";
 import { GenerationStatus } from "../generated/enums";
+import { DiscoveryService } from "../services/discoveryService";
+import { ContentGenerationService } from "../services/contentGenerationService";
 
 export const lmqWorker = new Worker(
   DOCUMENT_QUEUE_NAME,
   async (job: Job) => {
     const { courseId } = job.data;
     console.log(
-      `[Worker] Running layout-aware text extraction for Course: ${courseId}`,
+      `[Worker] Initiating Course Blueprint Auto-Discovery : ${courseId}`,
     );
 
-    await db.knowledgeSource.updateMany({
+    var sources = await db.knowledgeSource.findMany({
       where: { courseId: courseId },
-      data: { vectorIndexStatus: GenerationStatus.PROCESSING },
     });
 
-    try {
-      const courseSources = await db.knowledgeSource.findMany({
-        where: { courseId: courseId },
-      });
+    try{
+      for(const source of sources){
+        const title = source.title || `Source ${source.id}`;
+        const sourceId = source.id;
 
-      for (const source of courseSources) {
-        console.log(
-          `[Worker] Querying Unstructured API for file: ${source.title}`,
-        );
-
-        const elements = await ParserService.parseLayout(source.filePath);
-
-        const createdChunkIds: string[] = [];
-
-        for (const element of elements) {
-          if (!element.text || element.text.trim().length < 5) continue;
-
-          var knowledgeChunk = await db.knowledgeChunk.create({
-            data: {
-              sourceId: source.id,
-              pageNumber: element.pageNumber,
-              category: element.type, // Stores "Table", "Title", "ListItem" , "CodeBlock"
-              contentText: element.text,
-              hasEmbedding: false,
-            },
-          });
-          // Track the newly created chunk IDs for subsequent embedding generation step
-          createdChunkIds.push(knowledgeChunk.id);
-        }
-
-        console.log(
-          `[Worker] Step 2: Generating vector embeddings for ${createdChunkIds.length} text chunks...`,
-        );
-
-        // Iterate through the newly created chunks and update them with embeddings
-        for (const chunkId of createdChunkIds) {
-          const chunk = await db.knowledgeChunk.findUnique({
-            where: { id: chunkId },
-          });
-          if (!chunk) continue;
-
-          // generate embedding vector array using the text content of the chunk
-          const embeddingVector = await EmbeddingService.generateEmbedding(
-            chunk.contentText,
+          const courseBlueprintId = await DiscoveryService.generateInitialBlueprint(
+            sourceId,
+            title || "Untitled Course",
           );
 
-          const vectorString = `[${embeddingVector.join(",")}]`;
+          var modules = await db.module.findMany({
+            where: { courseId: courseId, blueprintId: courseBlueprintId },
+            select: { id: true, title: true, orderIndex: true },
+            orderBy: { orderIndex: "asc" },
+          });
 
-          await db.$executeRawUnsafe(
-            `UPDATE "KnowledgeChunk" SET embedding = $1::vector, "hasEmbedding" = true WHERE id = $2`,
-            vectorString,
-            chunkId,
-          );
-        }
-
-        await db.knowledgeSource.update({
-          where: { id: source.id },
-          data: { vectorIndexStatus: GenerationStatus.INDEXED },
-        });
-
-        console.log(`[Worker] Layout extraction complete for: ${source.title}`);
+          for(const module of modules){
+            await ContentGenerationService.generateAnyDocumentContent(
+              module.id,
+              module.title,
+              module.orderIndex
+            )
+          }
       }
 
       console.log(
-        `[Worker] Success! All structured knowledge chunks committed cleanly.`,
+        `[Worker] Success! All course blueprints generated cleanly. Blueprint IDs: ${sources.map(s => s.id).join(", ")} `,
       );
+
     } catch (error: any) {
       console.error(`[Worker Failed]:`, error.message);
       await db.knowledgeSource.updateMany({

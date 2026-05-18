@@ -1,5 +1,7 @@
 // Import the document worker to ensure it starts when the app runs
 import "./workers/chunkingWorker";
+import "./workers/embeddingWorker";
+import "./workers/mlqWorker";
 
 import dotenv from "dotenv";
 import "dotenv/config";

@@ -1,12 +1,12 @@
 import { Worker, Job } from "bullmq";
 import { redisConnection } from "../config/redis";
-import { DOCUMENT_QUEUE_NAME } from "../queues/lmqQueue";
+import { DOCUMENT_QUEUE_NAME } from "../queues/chunkingQueue";
 
 import { db } from "../database";
 
 import { ParserService } from "../services/parserService";
-import { EmbeddingService } from "../services/embbedingService";
 import { GenerationStatus } from "../generated/enums";
+import { queueCourseEmbedding } from "../queues/embeddingQueue";
 
 export const chunkingWorker = new Worker(
   DOCUMENT_QUEUE_NAME,
@@ -33,12 +33,10 @@ export const chunkingWorker = new Worker(
 
         const elements = await ParserService.parseLayout(source.filePath);
 
-        const createdChunkIds: string[] = [];
-
         for (const element of elements) {
           if (!element.text || element.text.trim().length < 5) continue;
 
-          var knowledgeChunk = await db.knowledgeChunk.create({
+          await db.knowledgeChunk.create({
             data: {
               sourceId: source.id,
               pageNumber: element.pageNumber,
@@ -47,8 +45,6 @@ export const chunkingWorker = new Worker(
               hasEmbedding: false,
             },
           });
-          // Track the newly created chunk IDs for subsequent embedding generation step
-          createdChunkIds.push(knowledgeChunk.id);
         }
 
         console.log(`[Worker] Layout extraction complete for: ${source.title}`);
@@ -57,6 +53,10 @@ export const chunkingWorker = new Worker(
       console.log(
         `[Worker] Success! All structured knowledge chunks committed cleanly.`,
       );
+
+      // Launch embedding generation as a next step in the pipeline
+      await queueCourseEmbedding(courseId);
+      
     } catch (error: any) {
       console.error(`[Worker Failed]:`, error.message);
       await db.knowledgeSource.updateMany({

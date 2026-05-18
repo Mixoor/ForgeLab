@@ -1,11 +1,9 @@
-
 import { redisConnection } from "../config/redis";
-
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 5000;
 
-const queueConnection = {
+const queueRedisConnection = {
   connection: redisConnection,
   defaultJobOptions: {
     attempts: MAX_RETRIES, // Retry failed jobs up to 3 times
@@ -18,5 +16,4 @@ const queueConnection = {
   },
 };
 
-
-export { queueConnection };
+export { queueRedisConnection };

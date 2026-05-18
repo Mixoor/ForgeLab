@@ -14,7 +14,7 @@ interface ChunkingJobData {
 
 export async function queueCourseChunking(courseId: number) {
   await documentChunkingQueue.add(
-    "chunking-course-docs",
+    DOCUMENT_QUEUE_NAME,
     { courseId } as ChunkingJobData,
     { jobId: `course-${courseId}` },
   );
