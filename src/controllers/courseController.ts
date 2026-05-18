@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { db } from "../database";
 import { unlinkFile } from "../config/multer";
-import { queueCourseIngestion } from "../queues/documentQueue";
+import { queueCourseChunking } from "../queues/chunkingQueue";
 
 export class CourseController {
   public static async createCourseWithSources(
@@ -74,9 +74,9 @@ export class CourseController {
         });
       });
 
-      // Fire and forget: Offload document parsing to our background architecture
+      // Send the courses to chunking queue
       if (newCourseStructure) {
-        await queueCourseIngestion(newCourseStructure.id);
+        await queueCourseChunking(newCourseStructure.id);
       }
       
       res.status(201).json(newCourseStructure);

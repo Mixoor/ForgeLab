@@ -1,5 +1,5 @@
 // Import the document worker to ensure it starts when the app runs
-import "./workers/documentWorker";
+import "./workers/chunkingWorker";
 
 import dotenv from "dotenv";
 import "dotenv/config";
@@ -37,8 +37,8 @@ app.use(
 );
 
 app.listen(PORT, () => {
-  console.log(`🚀 Skill Anvil Core API running on http://localhost:${PORT}`);
+  console.log(`Skill Anvil Core API running on http://localhost:${PORT}`);
   console.log(
-    `📊 Bull Board Queue Monitor available at http://localhost:${PORT}/admin/queues`,
+    ` Bull Board Queue Monitor available at http://localhost:${PORT}/admin/queues`,
   );
 });

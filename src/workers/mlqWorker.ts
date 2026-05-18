@@ -1,6 +1,6 @@
 import { Worker, Job } from "bullmq";
 import { redisConnection } from "../config/redis";
-import { DOCUMENT_QUEUE_NAME } from "../queues/documentQueue";
+import { DOCUMENT_QUEUE_NAME } from "../queues/lmqQueue";
 
 import { db } from "../database";
 
@@ -8,7 +8,7 @@ import { ParserService } from "../services/parserService";
 import { EmbeddingService } from "../services/embbedingService";
 import { GenerationStatus } from "../generated/enums";
 
-export const documentWorker = new Worker(
+export const lmqWorker = new Worker(
   DOCUMENT_QUEUE_NAME,
   async (job: Job) => {
     const { courseId } = job.data;
