@@ -23,9 +23,8 @@ export class ContentGenerationService {
     const moduleQuery = queryMatch ? queryMatch[1] : targetModule.title;
     const combinedQuery = `${moduleQuery} - ${lessonTitle}`;
 
-    // 2. Perform your standard pgvector RAG context assembly
     const queryVector = await EmbeddingService.generateEmbedding([combinedQuery]);
-    const vectorString = `[${queryVector.join(",")}]`;
+    const vectorString = `[${queryVector[0]?.values?.join(",")}]`;
 
     const matchingChunks: any[] = await db.$queryRawUnsafe(
       `
