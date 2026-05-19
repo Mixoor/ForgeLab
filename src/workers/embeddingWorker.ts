@@ -7,7 +7,7 @@ import { db } from "../database";
 import { EmbeddingService } from "../services/embbedingService";
 import { GenerationStatus } from "../generated/enums";
 
-const BATCH_SIZE = 100;
+const BATCH_SIZE = 20;
 
 export const embeddingWorker = new Worker(
   DOCUMENT_QUEUE_NAME,

@@ -26,12 +26,22 @@ export const chunkingWorker = new Worker(
         where: { courseId: courseId },
       });
 
+      console.log(
+        `[Worker] Found ${courseSources.length} knowledge sources for course: ${courseId}`,
+      );
+      
       for (const source of courseSources) {
         console.log(
           `[Worker] Querying Chunking API for file: ${source.title}`,
         );
 
         const elements = await ParserService.parseLayout(source.filePath);
+
+        console.log(
+          "[Worker] Chunking API returned elements:",
+          source.filePath,
+          elements.length,
+        );
 
         for (const element of elements) {
           if (!element.text || element.text.trim().length < 5) continue;

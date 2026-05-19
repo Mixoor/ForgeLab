@@ -24,17 +24,19 @@ def main():
 
     file_path = sys.argv[1]
     ext = os.path.splitext(file_path)[1].lower()
-    
+    print(f"[Parser] Processing file: {file_path} with extension: {ext}")
+
     try:
         final_elements = []
 
         if ext == ".pdf":
             reader = PdfReader(file_path)
+            print(f"[Parser] PDF loaded with {len(reader.pages)} pages.")
             for page_idx, page in enumerate(reader.pages):
                 # Using pypdf's layout-preserving extraction mode 
                 # to keep table spaces and headers structurally aligned
                 page_text = page.extract_text(extraction_mode="layout") or ""
-                
+                print(f"[Parser] Extracted text from page {page_idx + 1}: {len(page_text)} characters")
                 # Split roughly by paragraphs or double newlines first (Semantic boundary)
                 paragraphs = page_text.split("\n\n")
                 

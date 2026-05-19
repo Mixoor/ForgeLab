@@ -21,8 +21,13 @@ export class ParserService {
 
       const scriptPath = path.join(
         __dirname,
-       //"../external/scripts/document-parser.py", 
-        "../external/scripts/recursive-document-parser.py",
+        //"../external/scripts/document-parser.py",
+        //"../external/scripts/recursive-document-parser.py",
+        "../external/scripts/recursive-rubost-parser.py",
+      );
+
+      console.log(
+        `[ParserService] Spawning Python parser for file: ${filePath}`,
       );
 
       // Spawn python execution pipeline thread
@@ -39,6 +44,7 @@ export class ParserService {
       // Capture execution telemetry errors or logging trace notes
       pythonProcess.stderr.on("data", (chunk) => {
         stderrData += chunk.toString();
+        console.log(`[ParserService - Python STDERR]: ${chunk.toString()}`);
       });
 
       pythonProcess.on("close", (code) => {
