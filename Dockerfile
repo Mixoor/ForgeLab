@@ -14,7 +14,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # RUN pip install unstructured unstructured[all] pypdf --no-cache-dir
 
-RUN pip install  pypdf --no-cache-dir
+RUN pip install langchain-community langchain-text-splitters pypdf --no-cache-dir
 
 COPY package*.json ./
 
